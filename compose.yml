@@ -1,0 +1,46 @@
+name: node-dev
+
+services:
+  app:
+    container_name: node-dev-nginx
+    build:
+      context: docker/development
+      dockerfile: node/Dockerfile
+      args:
+        HOST_USER_ID: "${HOST_USER_ID:-1000}"
+        HOST_GROUP_ID: "${HOST_GROUP_ID:-1000}"
+    command: sh -c "until [ -f .ready ] ; do sleep 1 ; done && npm run dev"
+    tty: true
+    environment:
+      TZ: "${TIMEZONE:-Europe/Berlin}"
+    volumes:
+      - ./src:/app
+    networks:
+      - "proxy"
+      - "default"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.node-app.rule=Host(`${FRONTEND_URL:-node.app.loc}`)"
+      - "traefik.http.routers.node-app.tls=true"
+
+  node:
+    container_name: node-dev-node
+    build:
+      context: docker/development
+      dockerfile: node/Dockerfile
+      args:
+        HOST_USER_ID: "${HOST_USER_ID:-1000}"
+        HOST_GROUP_ID: "${HOST_GROUP_ID:-1000}"
+    environment:
+      TZ: "${TZ:-Europe/Berlin}"
+    volumes:
+      - ./src:/app
+      - ./docker/development/node/bash/.bashrc:/home/node/.bashrc
+#      - ./docker/development/node/bash/.bash_history:/home/node/.bash_history
+
+networks:
+  proxy:
+    external: true
+  develop:
+    external: true
