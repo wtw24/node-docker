@@ -1,3 +1,6 @@
+-include .env
+export
+
 .DEFAULT_GOAL := help
 
 # --- Configuration ---
@@ -104,7 +107,7 @@ success:
 
 info: ## Displays useful project URLs.
 	@echo "\nAccessing Services:"
-	@echo " - NodeApp: \t\t https://node.app.loc"
+	@echo " - $${SERVICE_NAME:-NodeApp}: \t https://$${FRONTEND_URL:-node.app.loc}"
 	@echo " - Traefik: \t\t https://traefik.app.loc"
 	@echo " - Buggregator: \t https://buggregator.app.loc"
 	@echo " - Dozzle: \t\t https://logs.app.loc"
