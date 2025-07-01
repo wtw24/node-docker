@@ -1,8 +1,8 @@
-name: node-dev
+name: "${APP_NAME:-node-dev}"
 
 services:
   app:
-    container_name: node-dev-app
+    container_name: "${APP_NAME:-node-dev}-app"
     build:
       context: docker/development
       dockerfile: node/Dockerfile
@@ -26,7 +26,7 @@ services:
       - "traefik.http.routers.node-app.tls=true"
 
   node:
-    container_name: node-dev-node
+    container_name: "${APP_NAME:-node-dev}-node"
     build:
       context: docker/development
       dockerfile: node/Dockerfile
