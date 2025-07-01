@@ -64,6 +64,8 @@ app-install:
 app-ready:
 	docker run --rm -v ${PWD}/src:/app -w /app -u ${UID}:${GID} alpine touch .ready
 
+node:
+	docker compose run --rm node bash
 
 # -- Script Groups --
 pre-scripts: create-env-file create-networks
@@ -102,6 +104,7 @@ success:
 
 info: ## Displays useful project URLs.
 	@echo "\nAccessing Services:"
+	@echo " - NodeApp: \t\t https://node.app.loc"
 	@echo " - Traefik: \t\t https://traefik.app.loc"
 	@echo " - Buggregator: \t https://buggregator.app.loc"
 	@echo " - Dozzle: \t\t https://logs.app.loc"

@@ -2,15 +2,14 @@ name: node-dev
 
 services:
   app:
-    container_name: node-dev-nginx
+    container_name: node-dev-app
     build:
       context: docker/development
       dockerfile: node/Dockerfile
       args:
         HOST_USER_ID: "${HOST_USER_ID:-1000}"
         HOST_GROUP_ID: "${HOST_GROUP_ID:-1000}"
-    command: sh -c "until [ -f .ready ] ; do sleep 1 ; done && npm run dev"
-    tty: true
+    command: sh -c "until [ -f .ready ] ; do sleep 1 ; done && npm run docs:dev"
     environment:
       TZ: "${TIMEZONE:-Europe/Berlin}"
     volumes:
@@ -22,6 +21,8 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
       - "traefik.http.routers.node-app.rule=Host(`${FRONTEND_URL:-node.app.loc}`)"
+      - "traefik.http.routers.erp-frontend.service=node-app"
+      - "traefik.http.services.node-app.loadbalancer.server.port=8080"
       - "traefik.http.routers.node-app.tls=true"
 
   node:
