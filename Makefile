@@ -1,78 +1,82 @@
+# Load .env file and export its variables
 -include .env
 export
 
-.DEFAULT_GOAL := help
-
 # --- Configuration ---
-UID := $(shell id -u)
-GID := $(shell id -g)
+# Pass current user's UID/GID to Docker Compose to avoid permission issues
+export HOST_USER_ID := $(shell id -u)
+export HOST_GROUP_ID := $(shell id -g)
 
-# --- Colors ---
+# Default dev command, if not set in .env.
+export DEV_COMMAND ?= npm run dev
+
+# --- Colors for beautiful output ---
 COLOR_GREEN  := \033[1;32m
 COLOR_YELLOW := \033[1;33m
 COLOR_RED    := \033[1;31m
 COLOR_DEFAULT:= \033[0m
 
-# Объявляем все цели, чтобы make не искал одноименные файлы
-.PHONY: init up down restart docker-down-clear \
-        pull build info \
-        pre-scripts post-scripts docker-up docker-down success \
-        create-env-file create-networks help
+# --- Main Settings ---
+.DEFAULT_GOAL := help
+
+.PHONY: init up down restart docker-up docker-down \
+        docker-pull docker-build pre-scripts create-env-file \
+        create-networks install dev-server shell node logs app-clear \
+        success info help
+
 
 # ====================================================================================
 #  Workflow Commands
 # ====================================================================================
 
-init: pre-scripts docker-down app-clear docker-pull docker-build docker-up app-init post-scripts ## Full reset: Re-initializes and restarts the entire environment.
-up: docker-up post-scripts ## Starts the environment without rebuilding.
-down: docker-down ## Stops the environment.
-restart: down up ## Restarts the environment.
-
-# ====================================================================================
-#  Advanced Docker Commands
-# ====================================================================================
-
-docker-down-clear: ## DANGER: Stops and removes all volumes (deletes all data).
-	@echo ""
-	@echo "$(COLOR_RED)🔥 WARNING: You are about to permanently delete ALL Docker volumes for this project.$(COLOR_DEFAULT)"
-	@echo "$(COLOR_RED)   This includes all databases, cached data, etc. This action CANNOT be undone.$(COLOR_DEFAULT)"
-	@echo ""
-	@read -p "Type 'YES' in all caps to confirm: " CONFIRM; \
-	if [ "$$CONFIRM" = "YES" ]; then \
-		echo ""; \
-		echo "Confirmation received. Proceeding with data deletion..."; \
-		docker compose down -v --remove-orphans; \
-		echo "$(COLOR_GREEN)✓ All services and associated volumes have been successfully removed.$(COLOR_DEFAULT)"; \
+## [SMART] Initializes the project. Runs setup for new projects, or resets existing ones.
+init:
+	@make -s pre-scripts
+	@if [ ! -f "src/package.json" ]; then \
+		echo "$(COLOR_YELLOW)Project not found in 'src/'. Running initial setup...$(COLOR_DEFAULT)"; \
+		make -s setup; \
 	else \
-		echo ""; \
-		echo "Confirmation not received. Operation cancelled."; \
+		echo "✓ Project found. Initializing the full environment..."; \
+		make -s docker-down; \
+		make -s docker-build; \
+		make -s install; \
+		make -s docker-up; \
+		make -s success; \
 	fi
 
-pull: docker-pull ## Pulls the latest versions of all Docker images.
-build: docker-build ## Forces a rebuild of all Docker images.
+
+## [NEW PROJECT] Run interactive session to create a new project.
+setup:
+	@make -s docker-build
+	@make -s app-clear
+	@echo ""
+	@echo "$(COLOR_YELLOW)======================================================================$(COLOR_DEFAULT)"
+	@echo "$(COLOR_YELLOW)         Entering Interactive Project Setup Session$(COLOR_DEFAULT)"
+	@echo "$(COLOR_YELLOW)----------------------------------------------------------------------$(COLOR_DEFAULT)"
+	@echo "You are now inside a temporary Docker container's command line."
+	@echo "The current directory is '/app', which is linked to your './src' folder."
+	@echo ""
+	@echo "  $(COLOR_DEFAULT)STEP 1: Run your project creation command now.$(COLOR_DEFAULT)"
+	@echo "          Example: $(COLOR_GREEN)npm create vuepress@next .$(COLOR_DEFAULT)"
+	@echo ""
+	@echo "  $(COLOR_DEFAULT)STEP 2: When finished, type $(COLOR_YELLOW)exit$(COLOR_DEFAULT) and press Enter to continue."
+	@echo "$(COLOR_YELLOW)======================================================================$(COLOR_DEFAULT)"
+	@make -s node
+	@echo "$(COLOR_GREEN)✓ Setup complete. Now run 'make init' again to build and start the project.$(COLOR_DEFAULT)"
+
+## Starts the environment without rebuilding.
+up: docker-up dev-server
+
+## Stops the environment.
+down: docker-down
+
+## Restarts the environment.
+restart: down up
+
 
 # ====================================================================================
 #  Internal Steps & Scripts
 # ====================================================================================
-
-
-app-clear:
-	docker run --rm -v ${PWD}/src:/app -w /app -u ${UID}:${GID} alpine sh -c 'rm -rf .ready'
-
-app-init: app-install app-ready
-
-app-install:
-	docker compose run --rm node npm install
-
-app-ready:
-	docker run --rm -v ${PWD}/src:/app -w /app -u ${UID}:${GID} alpine touch .ready
-
-node:
-	docker compose run --rm node bash
-
-# -- Script Groups --
-pre-scripts: create-env-file create-networks
-post-scripts: success info
 
 # -- Docker Wrappers --
 docker-up:
@@ -80,41 +84,99 @@ docker-up:
 	@docker compose up -d
 
 docker-down:
-	@echo "✓ Stopping containers..."
-	@docker compose down --remove-orphans
+	@echo "✓ Stopping services..."
+	@docker compose down --remove-orphans -t 1
 
 docker-pull:
-	@echo "✓ Pulling latest images..."
+	@echo " Pulling latest images..."
 	@docker compose pull
 
 docker-build:
 	@echo "✓ Building services..."
 	@docker compose build --pull
 
+# -- Script Groups --
+pre-scripts: create-env-file create-bash-history-file create-networks
+
 # -- Setup Scripts --
 create-env-file:
 	@echo "✓ Ensuring .env file exists..."
-	@docker run --rm -it -v ${PWD}:/app -w /app -u ${UID}:${GID} bash:5.2 bash docker/bin/create-env-file.sh
+	@docker run --rm -v ${PWD}:/app -w /app -u ${HOST_USER_ID}:${HOST_GROUP_ID} bash:5.2 bash docker/bin/create-env-file.sh
+
+create-bash-history-file:
+	@echo "✓ Ensuring .bash_history file exists..."
+	@docker run --rm -v ${PWD}/:/app -w /app -u ${HOST_USER_ID}:${HOST_GROUP_ID} bash:5.2 bash docker/bin/create-bash_history.sh
 
 create-networks:
 	@echo "✓ Ensuring Docker networks exist..."
 	@docker network create proxy 2>/dev/null || true
-	@docker network create dev 2>/dev/null || true
+
+
+# ====================================================================================
+#  UTILITY COMMANDS
+# ====================================================================================
+
+## Install/update npm dependencies.
+install:
+	@echo "✓ Installing npm dependencies..."
+	@docker compose run --rm app npm install
+
+## Run the dev server interactively in the container.
+dev-server:
+	@make -s info
+	@echo "$(COLOR_YELLOW)Starting development server with command: $(COLOR_YELLOW)$(DEV_COMMAND)$(COLOR_DEFAULT)..."
+	@docker compose exec app sh -c "$(DEV_COMMAND)"
+
+## Enter a bash session in the *running* 'app' container.
+shell:
+	@docker compose exec app bash
+
+## Run a *new, temporary* container for clean one-off commands.
+node:
+	@docker compose run --rm app bash
+
+## Follow the logs of all services.
+logs:
+	@docker compose logs -f
+
+
+# ====================================================================================
+#  INTERNAL HELPER TARGETS
+# ====================================================================================
+
+## Clears the 'src' directory.
+app-clear:
+	@rm -rf src/* src/.* 2>/dev/null || true
 
 # -- Finalization --
 success:
-	@echo "\n$(COLOR_GREEN)✓ Environment is up and running.$(COLOR_DEFAULT)"
+	@echo ""
+	@echo "$(COLOR_GREEN)✓ Environment initialized. Run 'make up' to start the dev server.$(COLOR_DEFAULT)";
+	@echo ""
 
-info: ## Displays useful project URLs.
-	@echo "\nAccessing Services:"
-	@echo " - $${SERVICE_NAME:-NodeApp}: \t https://$${FRONTEND_URL:-node.app.loc}"
-	@echo " - Traefik: \t\t https://traefik.app.loc"
-	@echo " - Buggregator: \t https://buggregator.app.loc"
-	@echo " - Dozzle: \t\t https://logs.app.loc"
-	@echo " "
+## Displays project URL after start.
+info:
+	@echo ""
+	@echo "  $(COLOR_YELLOW)➜$(COLOR_DEFAULT)  Application: $(COLOR_GREEN)https://$${FRONTEND_URL:-node.app.loc}$(COLOR_DEFAULT)"
+	@echo ""
 
-help: ## Displays this help message.
+## Show this help message.
+help:
 	@echo "Usage: make [target]"
 	@echo ""
 	@echo "Available targets:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
+	@awk ' \
+		/^##/{ \
+			h=substr($$0, 4); \
+			next \
+		} \
+		{ \
+			if (h != "" && $$0 ~ /^[a-zA-Z0-9_-]+:/) { \
+				split($$0, t, ":"); \
+				printf "  \033[36m%-18s\033[0m %s\n", t[1], h; \
+			} \
+			h="" \
+		} \
+	' $(MAKEFILE_LIST) | sort
+
+-include src/Makefile

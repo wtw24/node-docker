@@ -7,14 +7,21 @@ services:
       context: docker/development
       dockerfile: node/Dockerfile
       args:
+        NODE_VERSION: "${NODE_VERSION:-24}"
         HOST_USER_ID: "${HOST_USER_ID:-1000}"
         HOST_GROUP_ID: "${HOST_GROUP_ID:-1000}"
-    command: sh -c "until [ -f .ready ] ; do sleep 1 ; done && npm run docs:dev"
+    command: tail -f /dev/null
+    tty: true
+    stdin_open: true
     environment:
       TZ: "${TIMEZONE:-Europe/Berlin}"
+      VITE_PORT: "${VITE_PORT:-8080}"
+      VITE_HOST: "${VITE_HOST:-0.0.0.0}"
       FRONTEND_URL: "${FRONTEND_URL:-node.app.loc}"
     volumes:
       - ./src:/app
+      - ./docker/development/node/bash/.bashrc:/home/node/.bashrc
+      - ./docker/development/node/bash/.bash_history:/home/node/.bash_history
     networks:
       - "proxy"
       - "default"
@@ -23,26 +30,9 @@ services:
       - "traefik.docker.network=proxy"
       - "traefik.http.routers.node-app.rule=Host(`${FRONTEND_URL:-node.app.loc}`)"
       - "traefik.http.routers.erp-frontend.service=node-app"
-      - "traefik.http.services.node-app.loadbalancer.server.port=8080"
+      - "traefik.http.services.node-app.loadbalancer.server.port=${VITE_PORT:-8080}"
       - "traefik.http.routers.node-app.tls=true"
-
-  node:
-    container_name: "${APP_NAME:-node-dev}-node"
-    build:
-      context: docker/development
-      dockerfile: node/Dockerfile
-      args:
-        HOST_USER_ID: "${HOST_USER_ID:-1000}"
-        HOST_GROUP_ID: "${HOST_GROUP_ID:-1000}"
-    environment:
-      TZ: "${TZ:-Europe/Berlin}"
-    volumes:
-      - ./src:/app
-      - ./docker/development/node/bash/.bashrc:/home/node/.bashrc
-#      - ./docker/development/node/bash/.bash_history:/home/node/.bash_history
 
 networks:
   proxy:
-    external: true
-  develop:
     external: true
