@@ -23,4 +23,6 @@ RUN deluser --remove-home node \
 
 USER node
 
-EXPOSE 8080
+ARG VITE_PORT=8080
+
+EXPOSE ${VITE_PORT}
