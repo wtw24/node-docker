@@ -11,6 +11,7 @@ export HOST_GROUP_ID := $(shell id -g)
 export DEV_COMMAND ?= npm run dev
 
 # --- Colors for beautiful output ---
+BOLD         := \033[1m
 COLOR_GREEN  := \033[1;32m
 COLOR_YELLOW := \033[1;33m
 COLOR_RED    := \033[1;31m
@@ -51,7 +52,7 @@ setup:
 	@make -s app-clear
 	@echo ""
 	@echo "$(COLOR_YELLOW)======================================================================$(COLOR_DEFAULT)"
-	@echo "$(COLOR_YELLOW)         Entering Interactive Project Setup Session$(COLOR_DEFAULT)"
+	@echo "$(COLOR_YELLOW)      🚀  Entering Interactive Project Setup Session$(COLOR_DEFAULT)"
 	@echo "$(COLOR_YELLOW)----------------------------------------------------------------------$(COLOR_DEFAULT)"
 	@echo "You are now inside a temporary Docker container's command line."
 	@echo "The current directory is '/app', which is linked to your './src' folder."
@@ -62,7 +63,22 @@ setup:
 	@echo "  $(COLOR_DEFAULT)STEP 2: When finished, type $(COLOR_YELLOW)exit$(COLOR_DEFAULT) and press Enter to continue."
 	@echo "$(COLOR_YELLOW)======================================================================$(COLOR_DEFAULT)"
 	@make -s node
-	@echo "$(COLOR_GREEN)✓ Setup complete. Now run 'make init' again to build and start the project.$(COLOR_DEFAULT)"
+	@echo ""
+	@echo "$(COLOR_GREEN)======================================================================$(COLOR_DEFAULT)"
+	@echo "$(COLOR_GREEN)      🎉  Initial Project Files Created Successfully!$(COLOR_DEFAULT)"
+	@echo "$(COLOR_GREEN)----------------------------------------------------------------------$(COLOR_DEFAULT)"
+	@echo "Your new project files are now in the './src' directory."
+	@echo ""
+	@echo "  $(COLOR_YELLOW)IMPORTANT NEXT STEPS:$(COLOR_DEFAULT)"
+	@echo ""
+	@echo "  $(COLOR_DEFAULT)1. $(BOLD)Edit the main '.env' file in the project root.$(COLOR_DEFAULT)"
+	@echo "     (This is the file located in the same directory as the Makefile)."
+	@echo "     Ensure the $(COLOR_YELLOW)DEV_COMMAND$(COLOR_DEFAULT) variable matches your new project's start script."
+	@echo "     (e.g., $(COLOR_GREEN)DEV_COMMAND=npm run dev$(COLOR_DEFAULT), $(COLOR_GREEN)DEV_COMMAND=npm start$(COLOR_DEFAULT), etc.)"
+	@echo ""
+	@echo "  $(COLOR_DEFAULT)2. $(BOLD)Run 'make init' again$(COLOR_DEFAULT) to build the environment and install dependencies."
+	@echo "$(COLOR_GREEN)======================================================================$(COLOR_DEFAULT)"
+	@echo ""
 
 ## Starts the environment without rebuilding.
 up: docker-up dev-server
