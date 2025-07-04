@@ -1,10 +1,10 @@
-FROM node:22-alpine
+ARG NODE_VERSION=24
+
+FROM node:${NODE_VERSION}-alpine
 
 RUN apk add --no-cache \
     tzdata \
-    envsubst \
     ca-certificates \
-    wget \
     curl \
     bash \
     nano \
@@ -23,3 +23,4 @@ RUN deluser --remove-home node \
 
 USER node
 
+EXPOSE 8080
