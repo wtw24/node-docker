@@ -10,7 +10,7 @@ export HOST_GROUP_ID := $(shell id -g)
 # Default dev command, if not set in .env.
 export DEV_COMMAND ?= npm run dev
 
-# --- Colors for beautiful output ---
+# --- Colors ---
 BOLD         := \033[1m
 COLOR_GREEN  := \033[1;32m
 COLOR_YELLOW := \033[1;33m
@@ -34,10 +34,10 @@ COLOR_DEFAULT:= \033[0m
 init:
 	@make -s pre-scripts
 	@if [ ! -f "src/package.json" ]; then \
-		echo "$(COLOR_YELLOW)Project not found in 'src/'. Running initial setup...$(COLOR_DEFAULT)"; \
+		printf "%bProject not found in 'src/'. Running initial setup...%b\n" "$(COLOR_YELLOW)" "$(COLOR_DEFAULT)"; \
 		make -s setup; \
 	else \
-		echo "✓ Project found. Initializing the full environment..."; \
+		printf "✓ Project found. Initializing the full environment...\n"; \
 		make -s docker-down; \
 		make -s docker-build; \
 		make -s install; \
@@ -50,35 +50,27 @@ init:
 setup:
 	@make -s docker-build
 	@make -s app-clear
-	@echo -e ""
-	@echo -e "$(COLOR_YELLOW)======================================================================$(COLOR_DEFAULT)"
-	@echo -e "$(COLOR_YELLOW)      🚀  Entering Interactive Project Setup Session$(COLOR_DEFAULT)"
-	@echo -e "$(COLOR_YELLOW)----------------------------------------------------------------------$(COLOR_DEFAULT)"
-	@echo -e "You are now inside a temporary Docker container's command line."
-	@echo -e "The current directory is '/app', which is linked to your './src' folder."
-	@echo -e ""
-	@echo -e "  $(COLOR_DEFAULT)STEP 1: Run your project creation command now.$(COLOR_DEFAULT)"
-	@echo -e "          Example: $(COLOR_GREEN)npm create vuepress@next .$(COLOR_DEFAULT)"
-	@echo -e ""
-	@echo -e "  $(COLOR_DEFAULT)STEP 2: When finished, type $(COLOR_YELLOW)exit$(COLOR_DEFAULT) and press Enter to continue."
-	@echo -e "$(COLOR_YELLOW)======================================================================$(COLOR_DEFAULT)"
+	@printf "\n%b======================================================================%b\n" "$(COLOR_YELLOW)" "$(COLOR_DEFAULT)"
+	@printf "%b          Entering Interactive Project Setup Session%b\n" "$(COLOR_YELLOW)" "$(COLOR_DEFAULT)"
+	@printf "%b----------------------------------------------------------------------%b\n" "$(COLOR_YELLOW)" "$(COLOR_DEFAULT)"
+	@printf "You are now inside a temporary Docker container's command line.\n"
+	@printf "The current directory is '/app', which is linked to your './src' folder.\n"
+	@printf "\n  STEP 1: Run your project creation command now.\n"
+	@printf "          Example: %bnpm create vuepress@next .%b\n" "$(COLOR_GREEN)" "$(COLOR_DEFAULT)"
+	@printf "\n  STEP 2: When finished, type %bexit%b and press Enter to continue.\n" "$(COLOR_YELLOW)" "$(COLOR_DEFAULT)"
+	@printf "%b======================================================================%b\n" "$(COLOR_YELLOW)" "$(COLOR_DEFAULT)"
 	@make -s node
-	@echo -e ""
-	@echo -e "$(COLOR_GREEN)======================================================================$(COLOR_DEFAULT)"
-	@echo -e "$(COLOR_GREEN)      🎉  Initial Project Files Created Successfully!$(COLOR_DEFAULT)"
-	@echo -e "$(COLOR_GREEN)----------------------------------------------------------------------$(COLOR_DEFAULT)"
-	@echo -e "Your new project files are now in the './src' directory."
-	@echo -e ""
-	@echo -e "  $(COLOR_YELLOW)IMPORTANT NEXT STEPS:$(COLOR_DEFAULT)"
-	@echo -e ""
-	@echo -e "  $(COLOR_DEFAULT)1. $(BOLD)Edit the main '.env' file in the project root.$(COLOR_DEFAULT)"
-	@echo -e "     (This is the file located in the same directory as the Makefile)."
-	@echo -e "     Ensure the $(COLOR_YELLOW)DEV_COMMAND$(COLOR_DEFAULT) variable matches your new project's start script."
-	@echo -e "     (e.g., $(COLOR_GREEN)DEV_COMMAND=npm run dev$(COLOR_DEFAULT), $(COLOR_GREEN)DEV_COMMAND=npm start$(COLOR_DEFAULT), etc.)"
-	@echo -e ""
-	@echo -e "  $(COLOR_DEFAULT)2. $(BOLD)Run 'make init' again$(COLOR_DEFAULT) to build the environment and install dependencies."
-	@echo -e "$(COLOR_GREEN)======================================================================$(COLOR_DEFAULT)"
-	@echo -e ""
+	@printf "\n%b======================================================================%b\n" "$(COLOR_GREEN)" "$(COLOR_DEFAULT)"
+	@printf "%b          Initial Project Files Created Successfully!%b\n" "$(COLOR_GREEN)" "$(COLOR_DEFAULT)"
+	@printf "%b----------------------------------------------------------------------%b\n" "$(COLOR_GREEN)" "$(COLOR_DEFAULT)"
+	@printf "Your new project files are now in the './src' directory.\n"
+	@printf "\n  %bIMPORTANT NEXT STEPS:%b\n" "$(COLOR_YELLOW)" "$(COLOR_DEFAULT)"
+	@printf "\n  1. %bEdit the main '.env' file in the project root.%b\n" "$(BOLD)" "$(COLOR_DEFAULT)"
+	@printf "     (This is the file located in the same directory as the Makefile).\n"
+	@printf "     Ensure the %bDEV_COMMAND%b variable matches your new project's start script.\n" "$(COLOR_YELLOW)" "$(COLOR_DEFAULT)"
+	@printf "     (e.g., %bDEV_COMMAND=npm run dev%b, %bDEV_COMMAND=npm start%b, etc.)\n" "$(COLOR_GREEN)" "$(COLOR_DEFAULT)" "$(COLOR_GREEN)" "$(COLOR_DEFAULT)"
+	@printf "\n  2. %bRun 'make init' again%b to build the environment and install dependencies.\n" "$(BOLD)" "$(COLOR_DEFAULT)"
+	@printf "%b======================================================================%b\n\n" "$(COLOR_GREEN)" "$(COLOR_DEFAULT)"
 
 ## Starts the environment without rebuilding.
 up: docker-up dev-server
@@ -96,19 +88,19 @@ restart: down up
 
 # -- Docker Wrappers --
 docker-up:
-	@echo -e "✓ Starting containers..."
+	@printf "✓ Starting containers...\n"
 	@docker compose up -d
 
 docker-down:
-	@echo -e "✓ Stopping services..."
+	@printf "✓ Stopping services...\n"
 	@docker compose down --remove-orphans -t 1
 
 docker-pull:
-	@echo -e " Pulling latest images..."
+	@printf " Pulling latest images...\n"
 	@docker compose pull
 
 docker-build:
-	@echo -e "✓ Building services..."
+	@printf "✓ Building services...\n"
 	@docker compose build --pull
 
 # -- Script Groups --
@@ -116,15 +108,15 @@ pre-scripts: create-env-file create-bash-history-file create-networks
 
 # -- Setup Scripts --
 create-env-file:
-	@echo -e "✓ Ensuring .env file exists..."
+	@printf "✓ Ensuring .env file exists...\n"
 	@docker run --rm -v ${PWD}:/app -w /app -u ${HOST_USER_ID}:${HOST_GROUP_ID} bash:5.2 bash docker/bin/create-env-file.sh
 
 create-bash-history-file:
-	@echo -e "✓ Ensuring .bash_history file exists..."
+	@printf "✓ Ensuring .bash_history file exists...\n"
 	@docker run --rm -v ${PWD}/:/app -w /app -u ${HOST_USER_ID}:${HOST_GROUP_ID} bash:5.2 bash docker/bin/create-bash_history.sh
 
 create-networks:
-	@echo -e "✓ Ensuring Docker networks exist..."
+	@printf "✓ Ensuring Docker networks exist...\n"
 	@docker network create proxy 2>/dev/null || true
 
 
@@ -134,13 +126,13 @@ create-networks:
 
 ## Install/update npm dependencies.
 install:
-	@echo -e "✓ Installing npm dependencies..."
+	@printf "✓ Installing npm dependencies...\n"
 	@docker compose run --rm app npm install
 
 ## Run the dev server interactively in the container.
 dev-server:
 	@make -s info
-	@echo -e "$(COLOR_YELLOW)Starting development server with command: $(COLOR_YELLOW)$(DEV_COMMAND)$(COLOR_DEFAULT)..."
+	@printf "%bStarting development server with command:%b %s ...\n" "$(COLOR_YELLOW)" "$(COLOR_DEFAULT)" "$(DEV_COMMAND)"
 	@docker compose exec app sh -c "$(DEV_COMMAND)"
 
 ## Enter a bash session in the *running* 'app' container.
@@ -166,21 +158,16 @@ app-clear:
 
 # -- Finalization --
 success:
-	@echo -e ""
-	@echo -e "$(COLOR_GREEN)✓ Environment initialized. Run 'make up' to start the dev server.$(COLOR_DEFAULT)";
-	@echo -e ""
+	@printf "\n✓%b Environment initialized. Run 'make up' to start the dev server.%b\n\n" "$(COLOR_GREEN)" "$(COLOR_DEFAULT)"
 
 ## Displays project URL after start.
 info:
-	@echo -e ""
-	@echo -e "  $(COLOR_YELLOW)➜$(COLOR_DEFAULT)  Application: $(COLOR_GREEN)https://$${FRONTEND_URL:-node.app.loc}$(COLOR_DEFAULT)"
-	@echo -e ""
+	@printf "  %b➜%b  Application: %bhttps://$${FRONTEND_URL:-node.app.loc}%b\n\n" "$(COLOR_YELLOW)" "$(COLOR_DEFAULT)" "$(COLOR_GREEN)" "$(COLOR_DEFAULT)"
 
 ## Show this help message.
 help:
-	@echo -e "Usage: make [target]"
-	@echo -e ""
-	@echo -e "Available targets:"
+	@printf "Usage: make [target]\n\n"
+	@printf "Available targets:\n"
 	@awk ' \
 		/^##/{ \
 			h=substr($$0, 4); \
