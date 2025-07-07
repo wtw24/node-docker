@@ -162,7 +162,7 @@ success:
 
 ## Displays project URL after start.
 info:
-	@printf "  %b➜%b  Application: %bhttps://$${FRONTEND_URL:-node.app.loc}%b\n\n" "$(COLOR_YELLOW)" "$(COLOR_DEFAULT)" "$(COLOR_GREEN)" "$(COLOR_DEFAULT)"
+	@printf "\n%b➜%b  Application: %bhttps://$${FRONTEND_URL:-node.app.loc}%b\n\n" "$(COLOR_YELLOW)" "$(COLOR_DEFAULT)" "$(COLOR_GREEN)" "$(COLOR_DEFAULT)"
 
 ## Show this help message.
 help:
